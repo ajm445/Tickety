@@ -1,0 +1,45 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Build outputs
+build/
+dist/
+target/
+out/
+
+# Dependencies
+node_modules/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+*.lcov
+
+# Temp files
+*.tmp
+*.swp
+*~
+
+# H2 Database
+*.db
+*.mv.db
+*.trace.db

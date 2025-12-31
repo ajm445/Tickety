@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${SUPABASE_HOST}:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: ${SUPABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    com.tickety.reservation: INFO
+    org.hibernate.SQL: WARN
