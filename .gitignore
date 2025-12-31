@@ -3,6 +3,9 @@
 .vscode/
 *.iml
 
+# Claude Code (contains API keys)
+.claude/
+
 # Build outputs
 build/
 dist/

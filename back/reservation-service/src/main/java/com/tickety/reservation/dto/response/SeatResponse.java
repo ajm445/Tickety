@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
@@ -18,30 +18,42 @@ import java.math.BigDecimal;
 @Schema(description = "좌석 응답 DTO")
 public class SeatResponse {
 
-    @Schema(description = "좌석 ID", example = "1")
-    private Long seatId;
+    @Schema(description = "좌석 ID")
+    private UUID id;
 
-    @Schema(description = "공연 ID", example = "1")
-    private Long concertId;
+    @Schema(description = "공연 ID")
+    private UUID concertId;
 
-    @Schema(description = "좌석 번호", example = "A-1")
-    private String seatNumber;
+    @Schema(description = "섹션", example = "VIP")
+    private String section;
+
+    @Schema(description = "열 번호", example = "A")
+    private String rowNumber;
+
+    @Schema(description = "좌석 번호", example = "1")
+    private Integer seatNumber;
+
+    @Schema(description = "전체 좌석 번호", example = "VIP-A-1")
+    private String fullSeatNumber;
 
     @Schema(description = "좌석 등급", example = "VIP")
-    private SeatGrade seatGrade;
+    private SeatGrade grade;
 
-    @Schema(description = "좌석 가격", example = "150000.00")
-    private BigDecimal price;
+    @Schema(description = "좌석 가격", example = "150000")
+    private Integer price;
 
     @Schema(description = "좌석 상태", example = "AVAILABLE")
     private SeatStatus status;
 
     public static SeatResponse from(Seat seat) {
         return SeatResponse.builder()
-                .seatId(seat.getId())
-                .concertId(seat.getConcertId())
+                .id(seat.getId())
+                .concertId(seat.getConcert().getId())
+                .section(seat.getSection())
+                .rowNumber(seat.getRowNumber())
                 .seatNumber(seat.getSeatNumber())
-                .seatGrade(seat.getSeatGrade())
+                .fullSeatNumber(seat.getFullSeatNumber())
+                .grade(seat.getGrade())
                 .price(seat.getPrice())
                 .status(seat.getStatus())
                 .build();

@@ -3,23 +3,33 @@ import type { ApiResponse, Reservation, ReservationRequest, Seat } from '../../.
 
 export const reservationApi = {
   // Seat APIs
-  getSeatsByConcertId: async (concertId: number): Promise<ApiResponse<Seat[]>> => {
+  getSeatsByConcertId: async (concertId: string): Promise<ApiResponse<Seat[]>> => {
     const response = await apiClient.get(`/api/reservations/seats/concert/${concertId}`);
     return response.data;
   },
 
-  getAvailableSeatsByConcertId: async (concertId: number): Promise<ApiResponse<Seat[]>> => {
+  getAvailableSeatsByConcertId: async (concertId: string): Promise<ApiResponse<Seat[]>> => {
     const response = await apiClient.get(`/api/reservations/seats/concert/${concertId}/available`);
     return response.data;
   },
 
-  getSeatById: async (seatId: number): Promise<ApiResponse<Seat>> => {
+  getSeatById: async (seatId: string): Promise<ApiResponse<Seat>> => {
     const response = await apiClient.get(`/api/reservations/seats/${seatId}`);
     return response.data;
   },
 
+  holdSeat: async (seatId: string, holdMinutes: number = 5): Promise<ApiResponse<null>> => {
+    const response = await apiClient.post(`/api/reservations/seats/${seatId}/hold?holdMinutes=${holdMinutes}`);
+    return response.data;
+  },
+
+  releaseSeat: async (seatId: string): Promise<ApiResponse<null>> => {
+    const response = await apiClient.delete(`/api/reservations/seats/${seatId}/hold`);
+    return response.data;
+  },
+
   // Reservation APIs
-  createReservation: async (data: ReservationRequest): Promise<ApiResponse<Reservation[]>> => {
+  createReservation: async (data: ReservationRequest): Promise<ApiResponse<Reservation>> => {
     const response = await apiClient.post('/api/reservations', data);
     return response.data;
   },
@@ -29,17 +39,22 @@ export const reservationApi = {
     return response.data;
   },
 
-  getReservationById: async (reservationId: number): Promise<ApiResponse<Reservation>> => {
+  getReservationById: async (reservationId: string): Promise<ApiResponse<Reservation>> => {
     const response = await apiClient.get(`/api/reservations/${reservationId}`);
     return response.data;
   },
 
-  cancelReservation: async (reservationId: number): Promise<ApiResponse<null>> => {
+  getReservationByNumber: async (reservationNumber: string): Promise<ApiResponse<Reservation>> => {
+    const response = await apiClient.get(`/api/reservations/number/${reservationNumber}`);
+    return response.data;
+  },
+
+  cancelReservation: async (reservationId: string): Promise<ApiResponse<null>> => {
     const response = await apiClient.delete(`/api/reservations/${reservationId}`);
     return response.data;
   },
 
-  confirmReservation: async (reservationId: number): Promise<ApiResponse<Reservation>> => {
+  confirmReservation: async (reservationId: string): Promise<ApiResponse<Reservation>> => {
     const response = await apiClient.post(`/api/reservations/${reservationId}/confirm`);
     return response.data;
   },

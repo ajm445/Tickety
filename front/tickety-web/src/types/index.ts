@@ -8,7 +8,7 @@ export interface ApiResponse<T> {
 
 // Auth Types
 export interface User {
-  userId: number;
+  id: string;  // UUID
   email: string;
   name: string;
 }
@@ -29,69 +29,105 @@ export interface TokenResponse {
   refreshToken: string;
 }
 
-// Concert Types
-export interface Concert {
-  id: number;
-  title: string;
-  description: string;
-  venue: Venue;
-  startDate: string;
-  endDate: string;
-  posterUrl?: string;
-  category: string;
-}
-
+// Venue Types
 export interface Venue {
-  id: number;
+  id: string;  // UUID
   name: string;
   address: string;
-  capacity: number;
+  city: string;
+  totalSeats: number;
+  description?: string;
+  imageUrl?: string;
+}
+
+// Concert Types
+export type ConcertStatus = 'SCHEDULED' | 'OPEN' | 'SOLD_OUT' | 'CANCELLED' | 'COMPLETED';
+
+export interface Concert {
+  id: string;  // UUID
+  venueId: string;
+  venue?: Venue;
+  title: string;
+  artist: string;
+  description?: string;
+  concertDate: string;
+  bookingStartAt: string;
+  bookingEndAt: string;
+  status: ConcertStatus;
+  posterUrl?: string;
+  priceMin: number;
+  priceMax: number;
 }
 
 // Seat Types
-export type SeatGrade = 'VIP' | 'R' | 'S' | 'A';
-export type SeatStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD';
+export type SeatGrade = 'VIP' | 'R' | 'S' | 'A' | 'B';
+export type SeatStatus = 'AVAILABLE' | 'HELD' | 'RESERVED' | 'SOLD';
 
 export interface Seat {
-  seatId: number;
-  concertId: number;
-  seatNumber: string;
-  seatGrade: SeatGrade;
+  id: string;  // UUID
+  concertId: string;
+  section: string;
+  rowNumber: string;
+  seatNumber: number;
+  fullSeatNumber: string;
+  grade: SeatGrade;
   price: number;
   status: SeatStatus;
 }
 
 // Reservation Types
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
+
+export interface ReservationSeat {
+  id: string;  // UUID
+  seatId: string;
+  fullSeatNumber: string;
+  grade: SeatGrade;
+  price: number;
+}
 
 export interface Reservation {
-  reservationId: number;
-  seatId: number;
-  userId: number;
+  id: string;  // UUID
+  reservationNumber: string;
+  userId: string;
+  concertId: string;
+  concertTitle: string;
   status: ReservationStatus;
-  reservedAt: string;
-  expiredAt: string;
+  totalAmount: number;
+  seats?: ReservationSeat[];
+  createdAt: string;
+  expiresAt: string;
+  confirmedAt?: string;
 }
 
 export interface ReservationRequest {
-  concertId: number;
-  seatIds: number[];
+  concertId: string;
+  seatIds: string[];
 }
 
 // Payment Types
-export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
-export type PaymentMethod = 'CARD' | 'BANK_TRANSFER' | 'VIRTUAL_ACCOUNT';
+export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'PARTIAL_REFUNDED';
+export type PaymentMethod = 'CREDIT_CARD' | 'DEBIT_CARD' | 'BANK_TRANSFER' | 'KAKAO_PAY' | 'NAVER_PAY' | 'TOSS_PAY';
 
 export interface Payment {
-  paymentId: number;
-  reservationId: number;
+  id: string;  // UUID
+  reservationId: string;
+  userId: string;
+  paymentNumber: string;
   amount: number;
   method: PaymentMethod;
   status: PaymentStatus;
+  pgTransactionId?: string;
+  pgProvider?: string;
   paidAt?: string;
+  failedAt?: string;
+  failureReason?: string;
+  refundedAmount?: number;
+  refundedAt?: string;
+  refundReason?: string;
 }
 
 export interface PaymentRequest {
-  reservationId: number;
+  reservationId: string;
   method: PaymentMethod;
 }

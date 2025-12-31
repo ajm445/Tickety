@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/reservations")
@@ -31,13 +32,13 @@ public class ReservationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "좌석이 이미 예약됨")
     })
     @PostMapping
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> createReservation(
+    public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
             @Valid @RequestBody ReservationRequest request,
             @Parameter(description = "사용자 ID (헤더에서 추출)", required = true)
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
-        List<ReservationResponse> reservations = reservationService.createReservation(request, userId);
+            @RequestHeader(value = "X-User-Id") UUID userId) {
+        ReservationResponse reservation = reservationService.createReservation(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(reservations, "예약이 생성되었습니다."));
+                .body(ApiResponse.success(reservation, "예약이 생성되었습니다."));
     }
 
     @Operation(summary = "내 예약 목록 조회", description = "현재 사용자의 모든 예약 목록을 조회합니다.")
@@ -47,7 +48,7 @@ public class ReservationController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getMyReservations(
             @Parameter(description = "사용자 ID (헤더에서 추출)", required = true)
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader(value = "X-User-Id") UUID userId) {
         List<ReservationResponse> reservations = reservationService.getReservationsByUserId(userId);
         return ResponseEntity.ok(ApiResponse.success(reservations));
     }
@@ -59,8 +60,20 @@ public class ReservationController {
     })
     @GetMapping("/{reservationId}")
     public ResponseEntity<ApiResponse<ReservationResponse>> getReservationById(
-            @Parameter(description = "예약 ID", required = true) @PathVariable Long reservationId) {
+            @Parameter(description = "예약 ID", required = true) @PathVariable UUID reservationId) {
         ReservationResponse reservation = reservationService.getReservationById(reservationId);
+        return ResponseEntity.ok(ApiResponse.success(reservation));
+    }
+
+    @Operation(summary = "예약 번호로 조회", description = "예약 번호로 예약 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "예약을 찾을 수 없음")
+    })
+    @GetMapping("/number/{reservationNumber}")
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservationByNumber(
+            @Parameter(description = "예약 번호", required = true) @PathVariable String reservationNumber) {
+        ReservationResponse reservation = reservationService.getReservationByNumber(reservationNumber);
         return ResponseEntity.ok(ApiResponse.success(reservation));
     }
 
@@ -72,9 +85,9 @@ public class ReservationController {
     })
     @DeleteMapping("/{reservationId}")
     public ResponseEntity<ApiResponse<Void>> cancelReservation(
-            @Parameter(description = "예약 ID", required = true) @PathVariable Long reservationId,
+            @Parameter(description = "예약 ID", required = true) @PathVariable UUID reservationId,
             @Parameter(description = "사용자 ID (헤더에서 추출)", required = true)
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader(value = "X-User-Id") UUID userId) {
         reservationService.cancelReservation(reservationId, userId);
         return ResponseEntity.ok(ApiResponse.success(null, "예약이 취소되었습니다."));
     }
@@ -87,7 +100,7 @@ public class ReservationController {
     })
     @PostMapping("/{reservationId}/confirm")
     public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(
-            @Parameter(description = "예약 ID", required = true) @PathVariable Long reservationId) {
+            @Parameter(description = "예약 ID", required = true) @PathVariable UUID reservationId) {
         ReservationResponse reservation = reservationService.confirmReservation(reservationId);
         return ResponseEntity.ok(ApiResponse.success(reservation, "예약이 확정되었습니다."));
     }

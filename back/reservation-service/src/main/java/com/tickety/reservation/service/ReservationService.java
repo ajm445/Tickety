@@ -4,18 +4,21 @@ import com.tickety.reservation.dto.request.ReservationRequest;
 import com.tickety.reservation.dto.response.ReservationResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface ReservationService {
 
-    List<ReservationResponse> createReservation(ReservationRequest request, Long userId);
+    ReservationResponse createReservation(ReservationRequest request, UUID userId);
 
-    List<ReservationResponse> getReservationsByUserId(Long userId);
+    List<ReservationResponse> getReservationsByUserId(UUID userId);
 
-    ReservationResponse getReservationById(Long reservationId);
+    ReservationResponse getReservationById(UUID reservationId);
 
-    void cancelReservation(Long reservationId, Long userId);
+    ReservationResponse getReservationByNumber(String reservationNumber);
 
-    ReservationResponse confirmReservation(Long reservationId);
+    void cancelReservation(UUID reservationId, UUID userId);
+
+    ReservationResponse confirmReservation(UUID reservationId);
 
     void processExpiredReservations();
 }

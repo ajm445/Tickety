@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/reservations/seats")
@@ -27,7 +28,7 @@ public class SeatController {
     })
     @GetMapping("/concert/{concertId}")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> getSeatsByConcertId(
-            @Parameter(description = "공연 ID", required = true) @PathVariable Long concertId) {
+            @Parameter(description = "공연 ID", required = true) @PathVariable UUID concertId) {
         List<SeatResponse> seats = seatService.getSeatsByConcertId(concertId);
         return ResponseEntity.ok(ApiResponse.success(seats));
     }
@@ -38,7 +39,7 @@ public class SeatController {
     })
     @GetMapping("/concert/{concertId}/available")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> getAvailableSeatsByConcertId(
-            @Parameter(description = "공연 ID", required = true) @PathVariable Long concertId) {
+            @Parameter(description = "공연 ID", required = true) @PathVariable UUID concertId) {
         List<SeatResponse> seats = seatService.getAvailableSeatsByConcertId(concertId);
         return ResponseEntity.ok(ApiResponse.success(seats));
     }
@@ -50,8 +51,35 @@ public class SeatController {
     })
     @GetMapping("/{seatId}")
     public ResponseEntity<ApiResponse<SeatResponse>> getSeatById(
-            @Parameter(description = "좌석 ID", required = true) @PathVariable Long seatId) {
+            @Parameter(description = "좌석 ID", required = true) @PathVariable UUID seatId) {
         SeatResponse seat = seatService.getSeatById(seatId);
         return ResponseEntity.ok(ApiResponse.success(seat));
+    }
+
+    @Operation(summary = "좌석 임시 점유", description = "좌석을 일정 시간 동안 임시 점유합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "점유 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "좌석이 이미 점유됨")
+    })
+    @PostMapping("/{seatId}/hold")
+    public ResponseEntity<ApiResponse<Void>> holdSeat(
+            @Parameter(description = "좌석 ID", required = true) @PathVariable UUID seatId,
+            @Parameter(description = "사용자 ID", required = true)
+            @RequestHeader(value = "X-User-Id") UUID userId,
+            @Parameter(description = "점유 시간(분)", example = "5")
+            @RequestParam(defaultValue = "5") int holdMinutes) {
+        seatService.holdSeat(seatId, userId, holdMinutes);
+        return ResponseEntity.ok(ApiResponse.success(null, "좌석이 임시 점유되었습니다."));
+    }
+
+    @Operation(summary = "좌석 점유 해제", description = "임시 점유된 좌석을 해제합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "해제 성공")
+    })
+    @DeleteMapping("/{seatId}/hold")
+    public ResponseEntity<ApiResponse<Void>> releaseSeat(
+            @Parameter(description = "좌석 ID", required = true) @PathVariable UUID seatId) {
+        seatService.releaseSeat(seatId);
+        return ResponseEntity.ok(ApiResponse.success(null, "좌석 점유가 해제되었습니다."));
     }
 }

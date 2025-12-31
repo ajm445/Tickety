@@ -19,6 +19,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getMessage()));
     }
 
+    @ExceptionHandler(ConcertNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConcertNotFoundException(ConcertNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(e.getMessage()));
+    }
+
     @ExceptionHandler(SeatAlreadyReservedException.class)
     public ResponseEntity<ApiResponse<Void>> handleSeatAlreadyReservedException(SeatAlreadyReservedException e) {
         return ResponseEntity

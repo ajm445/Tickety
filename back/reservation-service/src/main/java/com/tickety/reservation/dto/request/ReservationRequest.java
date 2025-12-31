@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
@@ -18,10 +19,10 @@ import java.util.List;
 public class ReservationRequest {
 
     @NotNull(message = "Concert ID is required")
-    @Schema(description = "공연 ID", example = "1", required = true)
-    private Long concertId;
+    @Schema(description = "공연 ID", required = true)
+    private UUID concertId;
 
     @NotEmpty(message = "At least one seat must be selected")
-    @Schema(description = "선택한 좌석 ID 목록", example = "[1, 2, 3]", required = true)
-    private List<Long> seatIds;
+    @Schema(description = "선택한 좌석 ID 목록", required = true)
+    private List<UUID> seatIds;
 }

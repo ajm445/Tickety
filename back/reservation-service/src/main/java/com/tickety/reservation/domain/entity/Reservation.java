@@ -4,14 +4,16 @@ import com.tickety.reservation.domain.enums.ReservationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "reservations")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -20,59 +22,114 @@ import java.time.LocalDateTime;
 public class Reservation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "예약 ID", example = "1")
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uuid")
+    @Schema(description = "예약 ID")
+    private UUID id;
 
-    @Column(nullable = false)
-    @Schema(description = "좌석 ID", example = "1")
-    private Long seatId;
+    @Column(name = "user_id", nullable = false, columnDefinition = "uuid")
+    @Schema(description = "사용자 ID")
+    private UUID userId;
 
-    @Column(nullable = false)
-    @Schema(description = "사용자 ID", example = "1")
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "concert_id", nullable = false)
+    @Schema(description = "공연")
+    private Concert concert;
+
+    @Column(name = "reservation_number", nullable = false, unique = true, length = 20)
+    @Schema(description = "예약 번호", example = "TKT20251231-123456")
+    private String reservationNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Schema(description = "예약 상태", example = "PENDING")
-    private ReservationStatus status;
+    @Builder.Default
+    private ReservationStatus status = ReservationStatus.PENDING;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    @Schema(description = "예약 시간")
-    private LocalDateTime reservedAt;
+    @Column(name = "total_amount", nullable = false)
+    @Schema(description = "총 결제 금액", example = "300000")
+    private Integer totalAmount;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at")
     @Schema(description = "예약 만료 시간")
-    private LocalDateTime expiredAt;
+    private OffsetDateTime expiresAt;
 
-    public static Reservation create(Long seatId, Long userId, int expirationMinutes) {
+    @Column(name = "confirmed_at")
+    @Schema(description = "예약 확정 시간")
+    private OffsetDateTime confirmedAt;
+
+    @Column(name = "cancelled_at")
+    @Schema(description = "예약 취소 시간")
+    private OffsetDateTime cancelledAt;
+
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    @Schema(description = "취소 사유")
+    private String cancellationReason;
+
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ReservationSeat> reservationSeats = new ArrayList<>();
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    public static Reservation create(UUID userId, Concert concert, int expirationMinutes) {
         return Reservation.builder()
-                .seatId(seatId)
                 .userId(userId)
+                .concert(concert)
                 .status(ReservationStatus.PENDING)
-                .expiredAt(LocalDateTime.now().plusMinutes(expirationMinutes))
+                .totalAmount(0)
+                .expiresAt(OffsetDateTime.now().plusMinutes(expirationMinutes))
                 .build();
+    }
+
+    public void addSeat(ReservationSeat reservationSeat) {
+        this.reservationSeats.add(reservationSeat);
+        this.totalAmount += reservationSeat.getPrice();
     }
 
     public void confirm() {
         if (this.status != ReservationStatus.PENDING) {
             throw new IllegalStateException("Only pending reservations can be confirmed.");
         }
-        if (LocalDateTime.now().isAfter(this.expiredAt)) {
+        if (OffsetDateTime.now().isAfter(this.expiresAt)) {
             throw new IllegalStateException("Reservation has expired.");
         }
         this.status = ReservationStatus.CONFIRMED;
+        this.confirmedAt = OffsetDateTime.now();
     }
 
-    public void cancel() {
+    public void cancel(String reason) {
         if (this.status == ReservationStatus.CONFIRMED) {
             throw new IllegalStateException("Confirmed reservations cannot be cancelled directly.");
         }
         this.status = ReservationStatus.CANCELLED;
+        this.cancelledAt = OffsetDateTime.now();
+        this.cancellationReason = reason;
+    }
+
+    public void expire() {
+        if (this.status == ReservationStatus.PENDING) {
+            this.status = ReservationStatus.EXPIRED;
+        }
     }
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(this.expiredAt) && this.status == ReservationStatus.PENDING;
+        return this.status == ReservationStatus.PENDING &&
+               this.expiresAt != null &&
+               OffsetDateTime.now().isAfter(this.expiresAt);
+    }
+
+    public void setReservationNumber(String reservationNumber) {
+        this.reservationNumber = reservationNumber;
+    }
+
+    public void setTotalAmount(Integer totalAmount) {
+        this.totalAmount = totalAmount;
     }
 }

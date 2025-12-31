@@ -1,9 +1,9 @@
 # Supabase PostgreSQL Configuration
 spring:
   datasource:
-    url: jdbc:postgresql://${SUPABASE_HOST:localhost}:${SUPABASE_PORT:5432}/${SUPABASE_DB:postgres}
+    url: jdbc:postgresql://${SUPABASE_HOST:db.ecqhmkeuuxpenfdfuszq.supabase.co}:${SUPABASE_PORT:5432}/${SUPABASE_DB:postgres}
     driver-class-name: org.postgresql.Driver
-    username: ${SUPABASE_USER:postgres}
+    username: ${SUPABASE_USER:postgres.ecqhmkeuuxpenfdfuszq}
     password: ${SUPABASE_PASSWORD:}
     hikari:
       maximum-pool-size: 10
@@ -15,7 +15,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -24,6 +24,7 @@ spring:
           batch_size: 50
         order_inserts: true
         order_updates: true
+        default_schema: public
 
   h2:
     console:
