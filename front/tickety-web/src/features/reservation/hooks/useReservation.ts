@@ -2,19 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reservationApi } from '../api/reservationApi';
 import type { ReservationRequest } from '../../../types';
 
-export const useSeats = (concertId: number) => {
+export const useSeats = (concertId: string | undefined) => {
   return useQuery({
     queryKey: ['seats', concertId],
-    queryFn: () => reservationApi.getSeatsByConcertId(concertId),
+    queryFn: () => reservationApi.getSeatsByConcertId(concertId!),
     select: (response) => response.data,
     enabled: !!concertId,
   });
 };
 
-export const useAvailableSeats = (concertId: number) => {
+export const useAvailableSeats = (concertId: string | undefined) => {
   return useQuery({
     queryKey: ['seats', concertId, 'available'],
-    queryFn: () => reservationApi.getAvailableSeatsByConcertId(concertId),
+    queryFn: () => reservationApi.getAvailableSeatsByConcertId(concertId!),
     select: (response) => response.data,
     enabled: !!concertId,
   });
@@ -28,10 +28,10 @@ export const useMyReservations = () => {
   });
 };
 
-export const useReservation = (reservationId: number) => {
+export const useReservation = (reservationId: string | undefined) => {
   return useQuery({
     queryKey: ['reservations', reservationId],
-    queryFn: () => reservationApi.getReservationById(reservationId),
+    queryFn: () => reservationApi.getReservationById(reservationId!),
     select: (response) => response.data,
     enabled: !!reservationId,
   });
@@ -53,7 +53,7 @@ export const useCancelReservation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reservationId: number) => reservationApi.cancelReservation(reservationId),
+    mutationFn: (reservationId: string) => reservationApi.cancelReservation(reservationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['seats'] });
@@ -65,7 +65,7 @@ export const useConfirmReservation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reservationId: number) => reservationApi.confirmReservation(reservationId),
+    mutationFn: (reservationId: string) => reservationApi.confirmReservation(reservationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
     },

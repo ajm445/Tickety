@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { AuthLayout } from './layouts/AuthLayout';
+import { ProtectedRoute } from '../components/common';
 
 // Pages
 import HomePage from '../pages/HomePage';
@@ -31,15 +32,27 @@ export const router = createBrowserRouter([
       },
       {
         path: 'concerts/:concertId/reserve',
-        element: <ReservationPage />,
+        element: (
+          <ProtectedRoute>
+            <ReservationPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'reservations',
-        element: <MyReservationsPage />,
+        element: (
+          <ProtectedRoute>
+            <MyReservationsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'mypage',
-        element: <MyPage />,
+        element: (
+          <ProtectedRoute>
+            <MyPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

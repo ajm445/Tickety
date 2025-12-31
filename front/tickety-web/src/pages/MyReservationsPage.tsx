@@ -8,19 +8,21 @@ const statusColors: Record<ReservationStatus, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800',
   CONFIRMED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-gray-100 text-gray-800',
+  EXPIRED: 'bg-red-100 text-red-800',
 };
 
 const statusLabels: Record<ReservationStatus, string> = {
   PENDING: '결제 대기',
   CONFIRMED: '예약 확정',
   CANCELLED: '취소됨',
+  EXPIRED: '만료됨',
 };
 
 export const MyReservationsPage = () => {
   const { data: reservations, isLoading, error } = useMyReservations();
   const cancelReservation = useCancelReservation();
 
-  const handleCancel = (reservationId: number) => {
+  const handleCancel = (reservationId: string) => {
     if (window.confirm('예약을 취소하시겠습니까?')) {
       cancelReservation.mutate(reservationId);
     }
@@ -65,14 +67,14 @@ export const MyReservationsPage = () => {
         <div className="space-y-4">
           {reservations.map((reservation) => (
             <div
-              key={reservation.reservationId}
+              key={reservation.id}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-lg font-semibold text-gray-900">
-                      예약 #{reservation.reservationId}
+                      {reservation.concertTitle || '공연'}
                     </span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[reservation.status]}`}
@@ -84,35 +86,47 @@ export const MyReservationsPage = () => {
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Ticket className="h-4 w-4" />
-                      <span>좌석 ID: {reservation.seatId}</span>
+                      <span>예약번호: {reservation.reservationNumber}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        예약일: {new Date(reservation.reservedAt).toLocaleString('ko-KR')}
-                      </span>
-                    </div>
-                    {reservation.status === 'PENDING' && (
-                      <div className="flex items-center gap-1 text-yellow-600">
-                        <Clock className="h-4 w-4" />
+                    {reservation.seats && reservation.seats.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Ticket className="h-4 w-4" />
                         <span>
-                          만료: {new Date(reservation.expiredAt).toLocaleString('ko-KR')}
+                          좌석: {reservation.seats.map(s => s.fullSeatNumber).join(', ')}
                         </span>
                       </div>
                     )}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        예약일: {new Date(reservation.createdAt).toLocaleString('ko-KR')}
+                      </span>
+                    </div>
+                    {reservation.status === 'PENDING' && reservation.expiresAt && (
+                      <div className="flex items-center gap-1 text-yellow-600">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          만료: {new Date(reservation.expiresAt).toLocaleString('ko-KR')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2 text-sm font-medium text-gray-900">
+                    총 금액: {reservation.totalAmount.toLocaleString()}원
                   </div>
                 </div>
 
                 <div className="flex gap-2">
                   {reservation.status === 'PENDING' && (
                     <>
-                      <Link to={`/payment/${reservation.reservationId}`}>
+                      <Link to={`/payment/${reservation.id}`}>
                         <Button size="sm">결제하기</Button>
                       </Link>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCancel(reservation.reservationId)}
+                        onClick={() => handleCancel(reservation.id)}
                         isLoading={cancelReservation.isPending}
                       >
                         취소

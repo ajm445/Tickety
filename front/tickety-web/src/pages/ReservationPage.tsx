@@ -7,15 +7,17 @@ import type { Seat, SeatStatus } from '../types';
 
 const seatStatusColors: Record<SeatStatus, string> = {
   AVAILABLE: 'bg-green-500 hover:bg-green-600 cursor-pointer',
+  HELD: 'bg-orange-500 cursor-not-allowed',
   RESERVED: 'bg-yellow-500 cursor-not-allowed',
   SOLD: 'bg-gray-400 cursor-not-allowed',
 };
 
-const gradeColors = {
+const gradeColors: Record<string, string> = {
   VIP: 'border-purple-500',
   R: 'border-red-500',
   S: 'border-blue-500',
   A: 'border-green-500',
+  B: 'border-gray-500',
 };
 
 export const ReservationPage = () => {
@@ -24,28 +26,28 @@ export const ReservationPage = () => {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const { data: seats, isLoading, error } = useSeats(Number(concertId));
+  const { data: seats, isLoading, error } = useSeats(concertId);
   const createReservation = useCreateReservation();
 
   const handleSeatClick = (seat: Seat) => {
     if (seat.status !== 'AVAILABLE') return;
 
     setSelectedSeats((prev) => {
-      const isSelected = prev.some((s) => s.seatId === seat.seatId);
+      const isSelected = prev.some((s) => s.id === seat.id);
       if (isSelected) {
-        return prev.filter((s) => s.seatId !== seat.seatId);
+        return prev.filter((s) => s.id !== seat.id);
       }
       return [...prev, seat];
     });
   };
 
   const handleReserve = async () => {
-    if (selectedSeats.length === 0) return;
+    if (selectedSeats.length === 0 || !concertId) return;
 
     try {
       await createReservation.mutateAsync({
-        concertId: Number(concertId),
-        seatIds: selectedSeats.map((s) => s.seatId),
+        concertId: concertId,
+        seatIds: selectedSeats.map((s) => s.id),
       });
       navigate('/reservations');
     } catch (err) {
@@ -70,7 +72,7 @@ export const ReservationPage = () => {
 
   // Group seats by row
   const seatsByRow = seats?.reduce((acc, seat) => {
-    const row = seat.seatNumber.split('-')[0];
+    const row = seat.rowNumber;
     if (!acc[row]) acc[row] = [];
     acc[row].push(seat);
     return acc;
@@ -109,22 +111,22 @@ export const ReservationPage = () => {
                   <span className="w-8 text-sm font-medium text-gray-500">{row}</span>
                   <div className="flex gap-2 flex-wrap">
                     {rowSeats.map((seat) => {
-                      const isSelected = selectedSeats.some((s) => s.seatId === seat.seatId);
+                      const isSelected = selectedSeats.some((s) => s.id === seat.id);
                       return (
                         <button
-                          key={seat.seatId}
+                          key={seat.id}
                           onClick={() => handleSeatClick(seat)}
                           disabled={seat.status !== 'AVAILABLE'}
                           className={`
                             w-10 h-10 rounded-lg text-xs font-medium text-white
                             border-2 transition-all
                             ${seatStatusColors[seat.status]}
-                            ${gradeColors[seat.seatGrade]}
+                            ${gradeColors[seat.grade] || 'border-gray-300'}
                             ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''}
                           `}
-                          title={`${seat.seatNumber} - ${seat.seatGrade} - ${seat.price.toLocaleString()}원`}
+                          title={`${seat.fullSeatNumber} - ${seat.grade} - ${seat.price.toLocaleString()}원`}
                         >
-                          {seat.seatNumber.split('-')[1]}
+                          {seat.seatNumber}
                         </button>
                       );
                     })}
@@ -138,6 +140,10 @@ export const ReservationPage = () => {
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-green-500" />
                 <span>예약 가능</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-orange-500" />
+                <span>선택 중</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-yellow-500" />
@@ -164,12 +170,12 @@ export const ReservationPage = () => {
               <div className="space-y-3">
                 {selectedSeats.map((seat) => (
                   <div
-                    key={seat.seatId}
+                    key={seat.id}
                     className="flex justify-between items-center py-2 border-b"
                   >
                     <div>
-                      <span className="font-medium text-gray-900">{seat.seatNumber}</span>
-                      <span className="ml-2 text-sm text-gray-500">({seat.seatGrade})</span>
+                      <span className="font-medium text-gray-900">{seat.fullSeatNumber}</span>
+                      <span className="ml-2 text-sm text-gray-500">({seat.grade})</span>
                     </div>
                     <span className="text-gray-900">{seat.price.toLocaleString()}원</span>
                   </div>
@@ -214,8 +220,8 @@ export const ReservationPage = () => {
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="space-y-2">
               {selectedSeats.map((seat) => (
-                <div key={seat.seatId} className="flex justify-between text-sm text-gray-900">
-                  <span>{seat.seatNumber} ({seat.seatGrade})</span>
+                <div key={seat.id} className="flex justify-between text-sm text-gray-900">
+                  <span>{seat.fullSeatNumber} ({seat.grade})</span>
                   <span>{seat.price.toLocaleString()}원</span>
                 </div>
               ))}
