@@ -9,8 +9,9 @@ Tickety는 대규모 트래픽 환경에서 데이터 정합성을 보장하는 
 ### 핵심 기능
 - 공연 정보 조회 및 좌석 선택
 - 실시간 좌석 예약 (동시성 제어)
-- 결제 처리 (Saga 패턴)
-- JWT 기반 사용자 인증
+- API Gateway JWT 인증 필터
+- 인증 보호 라우트 (프론트엔드)
+- 결제 처리 (Saga 패턴) - 예정
 
 ---
 
@@ -72,13 +73,33 @@ Tickety/
 
 | 서비스 | 포트 | 설명 | 상태 |
 |--------|------|------|------|
-| Eureka Server | 8761 | 서비스 디스커버리 | ✅ 구현 완료 |
-| API Gateway | 8080 | 라우팅, CORS, 인증 필터 | ✅ 구현 완료 |
-| Auth Service | 8081 | JWT 인증/인가 | 📋 예정 |
+| Eureka Server | 8761 | 서비스 디스커버리 | ✅ 완료 |
+| API Gateway | 8080 | 라우팅, CORS, JWT 인증 필터 | ✅ 완료 |
+| Auth Service | 8081 | JWT 발급/인가 | 📋 예정 |
 | Concert Service | 8082 | 공연/공연장 관리 | 📋 예정 |
-| Reservation Service | 8083 | 좌석 예약 (비관적 락) | ✅ 구현 완료 |
+| Reservation Service | 8083 | 좌석 예약 (비관적 락) | ✅ 완료 |
 | Payment Service | 8084 | 결제 처리 (Saga) | 📋 예정 |
-| Frontend | 5173 | React 웹 애플리케이션 | ✅ 구현 완료 |
+| Frontend | 5173 | React 웹 애플리케이션 | ✅ 완료 |
+
+### 보안 아키텍처
+
+```
+[Client] → [API Gateway:8080] → [Microservices]
+              │
+              ├── JWT 토큰 검증 (JwtUtil)
+              ├── 사용자 ID 추출
+              └── X-User-Id 헤더 주입
+```
+
+**인증 불필요 (Open Endpoints):**
+- `POST /api/auth/login` - 로그인
+- `POST /api/auth/signup` - 회원가입
+- `POST /api/auth/refresh` - 토큰 갱신
+- `GET /api/concerts/**` - 공연 조회 (읽기 전용)
+
+**인증 필요:**
+- `/api/reservations/**` - 모든 예약 API
+- `/api/payments/**` - 모든 결제 API
 
 ### 서비스 간 통신
 - **동기 통신**: OpenFeign (서비스 간 직접 호출)
@@ -115,11 +136,20 @@ back/reservation-service/
 ### 핵심 기능: 비관적 락 (Pessimistic Lock)
 ```java
 @Lock(LockModeType.PESSIMISTIC_WRITE)
-@Query("SELECT s FROM Seat s WHERE s.id = :id")
-Optional<Seat> findByIdWithPessimisticLock(@Param("id") Long id);
+@Query("SELECT s FROM Seat s WHERE s.id IN :ids")
+List<Seat> findAllByIdWithPessimisticLock(@Param("ids") List<UUID> ids);
 ```
 - 100명의 사용자가 동시에 같은 좌석 예약 시 **1명만 성공**
 - `SELECT FOR UPDATE` 쿼리로 데이터 정합성 보장
+
+### 만료된 예약 자동 처리
+```java
+@Scheduled(fixedRate = 60000)
+public void processExpiredReservations() {
+    // PENDING 상태이며 expiresAt이 지난 예약 → EXPIRED로 변경
+    // 예약된 좌석 → AVAILABLE로 해제
+}
+```
 
 ---
 
@@ -130,7 +160,7 @@ Optional<Seat> findByIdWithPessimisticLock(@Param("id") Long id);
 front/tickety-web/src/
 ├── app/                            # 앱 설정
 │   ├── App.tsx                     # 메인 앱
-│   ├── router.tsx                  # 라우터 설정
+│   ├── router.tsx                  # 라우터 설정 (ProtectedRoute 포함)
 │   ├── layouts/                    # 레이아웃 (Main, Auth)
 │   └── providers/                  # Provider (Query)
 │
@@ -139,7 +169,8 @@ front/tickety-web/src/
 │   │   ├── Button/
 │   │   ├── Input/
 │   │   ├── Modal/
-│   │   └── Loading/
+│   │   ├── Loading/
+│   │   └── ProtectedRoute/         # 인증 보호 라우트 ✅
 │   └── layout/                     # 레이아웃 컴포넌트
 │       ├── Header/
 │       └── Footer/
@@ -148,13 +179,17 @@ front/tickety-web/src/
 │   ├── auth/                       # 인증 기능
 │   │   ├── api/                    # API 호출
 │   │   └── hooks/                  # Custom Hooks
+│   ├── concert/                    # 공연 기능 ✅
+│   │   ├── api/                    # Concert API
+│   │   └── hooks/                  # useConcert Hooks
 │   └── reservation/                # 예약 기능
 │       ├── api/
 │       └── hooks/
 │
 ├── pages/                          # 페이지 컴포넌트
 │   ├── HomePage.tsx
-│   ├── ConcertListPage.tsx
+│   ├── ConcertListPage.tsx         # API 연동 + 샘플 데이터
+│   ├── ConcertDetailPage.tsx       # API 연동 + 샘플 데이터
 │   ├── ReservationPage.tsx
 │   ├── MyReservationsPage.tsx
 │   ├── MyPage.tsx
@@ -164,8 +199,21 @@ front/tickety-web/src/
 │
 ├── services/apiClient.ts           # Axios 인스턴스
 ├── store/authStore.ts              # Zustand 상태
-└── types/index.ts                  # 타입 정의
+└── types/index.ts                  # 타입 정의 (UUID 기반)
 ```
+
+### 인증 보호 라우트
+```typescript
+// 로그인이 필요한 페이지는 ProtectedRoute로 보호
+<Route path="/reservations" element={
+  <ProtectedRoute><MyReservationsPage /></ProtectedRoute>
+} />
+```
+
+**보호된 라우트:**
+- `/reservations` - 내 예약 목록
+- `/mypage` - 마이페이지
+- `/concerts/:id/reserve` - 좌석 예약 페이지
 
 ---
 
@@ -173,15 +221,25 @@ front/tickety-web/src/
 
 ### Reservation Service API
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
-| POST | `/api/reservations` | 예약 생성 |
-| GET | `/api/reservations` | 내 예약 목록 |
-| GET | `/api/reservations/{id}` | 예약 상세 조회 |
-| DELETE | `/api/reservations/{id}` | 예약 취소 |
-| POST | `/api/reservations/{id}/confirm` | 예약 확정 |
-| GET | `/api/reservations/seats/concert/{id}` | 공연별 좌석 조회 |
-| GET | `/api/reservations/seats/concert/{id}/available` | 예약 가능 좌석 |
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/reservations` | 예약 생성 | ✅ |
+| GET | `/api/reservations` | 내 예약 목록 | ✅ |
+| GET | `/api/reservations/{id}` | 예약 상세 조회 | ✅ |
+| DELETE | `/api/reservations/{id}` | 예약 취소 | ✅ |
+| POST | `/api/reservations/{id}/confirm` | 예약 확정 | ✅ |
+| GET | `/api/reservations/seats/concert/{id}` | 공연별 좌석 조회 | ✅ |
+| GET | `/api/reservations/seats/concert/{id}/available` | 예약 가능 좌석 | ✅ |
+| POST | `/api/reservations/seats/{id}/hold` | 좌석 임시 점유 | ✅ |
+| DELETE | `/api/reservations/seats/{id}/hold` | 좌석 점유 해제 | ✅ |
+
+### Concert Service API (예정)
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| GET | `/api/concerts` | 공연 목록 조회 | ❌ |
+| GET | `/api/concerts/{id}` | 공연 상세 조회 | ❌ |
+| POST | `/api/concerts` | 공연 등록 | ✅ (관리자) |
 
 ### 응답 형식
 ```json
@@ -192,6 +250,13 @@ front/tickety-web/src/
   "timestamp": "2024-01-01T00:00:00Z"
 }
 ```
+
+### 인증 헤더
+```
+Authorization: Bearer <jwt-token>
+```
+- 유효한 토큰 → API Gateway가 `X-User-Id` 헤더 주입
+- 잘못된 토큰 → `401 Unauthorized`
 
 ---
 
@@ -261,12 +326,20 @@ cd back/reservation-service
 ### 백엔드 (.env)
 ```bash
 # back/.env
-SUPABASE_HOST=your-project-ref.supabase.co
-SUPABASE_PORT=5432
+
+# Supabase PostgreSQL (Pooler 사용 권장)
+SUPABASE_POOLER_HOST=aws-0-ap-northeast-2.pooler.supabase.com
+SUPABASE_POOLER_PORT=5432
 SUPABASE_DB=postgres
-SUPABASE_USER=postgres
-SUPABASE_PASSWORD=your-password
+SUPABASE_USER=postgres.your-project-ref
+SUPABASE_PASSWORD=your-database-password
+
+# JWT 설정
+JWT_SECRET=your-jwt-secret-key-at-least-32-characters
+JWT_EXPIRATION=3600000
 ```
+
+> ⚠️ `.env` 파일은 `.gitignore`에 포함되어 있습니다. 민감한 정보를 커밋하지 마세요.
 
 ### 프론트엔드 (.env)
 ```bash
@@ -278,46 +351,89 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ## 데이터베이스 설계
 
-### Seat (좌석) 테이블
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | Long | PK |
-| concert_id | Long | 공연 ID |
-| seat_number | String | 좌석 번호 (A-1) |
-| seat_grade | Enum | VIP, R, S, A |
-| price | BigDecimal | 가격 |
-| status | Enum | AVAILABLE, RESERVED, SOLD |
+> **참고:** 모든 ID는 UUID 타입을 사용합니다 (Supabase PostgreSQL)
 
-### Reservation (예약) 테이블
+### 주요 엔티티
+
+| 엔티티 | 설명 | 주요 필드 |
+|--------|------|----------|
+| `Venue` | 공연장 | name, address, city, totalSeats |
+| `Concert` | 공연 | title, artist, concertDate, status, priceMin/Max |
+| `Seat` | 좌석 | section, rowNumber, seatNumber, grade, price, status |
+| `Reservation` | 예약 | reservationNumber, status, totalAmount, expiresAt |
+| `ReservationSeat` | 예약-좌석 매핑 | price (예약 시점 가격) |
+| `Payment` | 결제 | paymentNumber, amount, method, status |
+
+### 좌석 (Seat) 테이블
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
-| id | Long | PK |
-| seat_id | Long | 좌석 ID |
-| user_id | Long | 사용자 ID |
-| status | Enum | PENDING, CONFIRMED, CANCELLED |
-| reserved_at | DateTime | 예약 시간 |
-| expired_at | DateTime | 만료 시간 (10분) |
+| id | UUID | PK |
+| concert_id | UUID | 공연 ID (FK) |
+| section | String | 구역 (A, B, C) |
+| row_number | String | 열 번호 |
+| seat_number | Integer | 좌석 번호 |
+| grade | Enum | VIP, R, S, A, B |
+| price | BigDecimal | 가격 |
+| status | Enum | AVAILABLE, HELD, RESERVED, SOLD |
+
+### 예약 (Reservation) 테이블
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID | PK |
+| user_id | UUID | 사용자 ID |
+| reservation_number | String | 예약 번호 |
+| status | Enum | PENDING, CONFIRMED, CANCELLED, EXPIRED |
+| total_amount | BigDecimal | 총 금액 |
+| created_at | DateTime | 생성 시간 |
+| expires_at | DateTime | 만료 시간 (10분) |
+
+### 상태 값 (Enum)
+
+**SeatStatus:**
+- `AVAILABLE` - 예약 가능
+- `HELD` - 임시 점유 (5분)
+- `RESERVED` - 예약됨
+- `SOLD` - 판매 완료
+
+**ReservationStatus:**
+- `PENDING` - 결제 대기
+- `CONFIRMED` - 예약 확정
+- `CANCELLED` - 취소됨
+- `EXPIRED` - 만료됨
+
+**ConcertStatus:**
+- `SCHEDULED` - 예정
+- `OPEN` - 예매 중
+- `SOLD_OUT` - 매진
+- `CANCELLED` - 취소
+- `COMPLETED` - 종료
 
 ---
 
 ## 향후 개발 계획
 
-### Phase 1 (완료)
+### Phase 1 (완료) ✅
 - [x] 프로젝트 구조 설계
 - [x] Eureka Server 구현
 - [x] API Gateway 구현
+- [x] API Gateway JWT 인증 필터
 - [x] Reservation Service 구현
-- [x] 동시성 테스트 코드
+- [x] 동시성 테스트 코드 (비관적 락)
 - [x] 프론트엔드 구현
+- [x] 프론트엔드 타입 수정 (UUID 기반)
+- [x] Concert API 연동 + 샘플 데이터
+- [x] 인증 보호 라우트 (ProtectedRoute)
+- [x] Supabase PostgreSQL 연동
 
-### Phase 2 (예정)
-- [ ] Auth Service (JWT 인증)
+### Phase 2 (진행 예정)
+- [ ] Auth Service (JWT 발급)
 - [ ] Concert Service (공연 관리)
-- [ ] Supabase 연동
+- [ ] 서비스 간 통신 (Feign Client)
 
 ### Phase 3 (예정)
 - [ ] Payment Service (Saga 패턴)
 - [ ] Kafka 이벤트 처리
+- [ ] Redis 캐싱
 - [ ] Docker Compose 배포
 
 ---
