@@ -1,7 +1,7 @@
-# Supabase PostgreSQL Configuration
+# Supabase PostgreSQL Configuration (using Supavisor Session Mode for IPv4)
 spring:
   datasource:
-    url: jdbc:postgresql://${SUPABASE_HOST:db.ecqhmkeuuxpenfdfuszq.supabase.co}:${SUPABASE_PORT:5432}/${SUPABASE_DB:postgres}
+    url: jdbc:postgresql://${SUPABASE_POOLER_HOST:aws-1-ap-northeast-2.pooler.supabase.com}:${SUPABASE_POOLER_PORT:5432}/${SUPABASE_DB:postgres}?sslmode=require
     driver-class-name: org.postgresql.Driver
     username: ${SUPABASE_USER:postgres.ecqhmkeuuxpenfdfuszq}
     password: ${SUPABASE_PASSWORD:}

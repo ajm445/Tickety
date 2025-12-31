@@ -38,7 +38,11 @@ springdoc:
       - name: payment-service
         url: /api/payments/v3/api-docs
 
+jwt:
+  secret: ${JWT_SECRET:default-secret-key-for-development-only-change-in-production}
+
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     reactor.netty: DEBUG
+    com.tickety.gateway: DEBUG
