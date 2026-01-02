@@ -78,7 +78,7 @@ Tickety/
 | Auth Service | 8081 | JWT 발급/인가 | ✅ 완료 |
 | Concert Service | 8082 | 공연/공연장 관리 | ✅ 완료 |
 | Reservation Service | 8083 | 좌석 예약 (비관적 락) | ✅ 완료 |
-| Payment Service | 8084 | 결제 처리 (Saga) | 📋 예정 |
+| Payment Service | 8084 | 결제 처리 | ✅ 완료 |
 | Frontend | 5173 | React 웹 애플리케이션 | ✅ 완료 |
 
 ### 보안 아키텍처
@@ -314,6 +314,19 @@ front/tickety-web/src/
 | PUT | `/api/venues/{id}` | 공연장 수정 | ✅ (관리자) |
 | DELETE | `/api/venues/{id}` | 공연장 삭제 | ✅ (관리자) |
 
+### Payment Service API
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/payments` | 결제 생성 | ✅ |
+| POST | `/api/payments/{id}/process` | 결제 처리 | ✅ |
+| GET | `/api/payments` | 내 결제 목록 조회 | ✅ |
+| GET | `/api/payments/{id}` | 결제 상세 조회 | ✅ |
+| GET | `/api/payments/number/{number}` | 결제 번호로 조회 | ✅ |
+| GET | `/api/payments/reservation/{id}` | 예약 ID로 결제 조회 | ✅ |
+| POST | `/api/payments/{id}/refund` | 환불 요청 | ✅ |
+| DELETE | `/api/payments/{id}` | 결제 취소 | ✅ |
+
 ### 응답 형식
 ```json
 {
@@ -362,6 +375,10 @@ cd back/concert-service
 # 5. Reservation Service 실행
 cd back/reservation-service
 ./gradlew bootRun
+
+# 6. Payment Service 실행
+cd back/payment-service
+./gradlew bootRun
 ```
 
 ### 2. 프론트엔드 실행
@@ -382,9 +399,11 @@ npm run dev
 | Swagger UI (Auth) | http://localhost:8081/swagger-ui.html |
 | Swagger UI (Concert) | http://localhost:8082/swagger-ui.html |
 | Swagger UI (Reservation) | http://localhost:8083/swagger-ui.html |
+| Swagger UI (Payment) | http://localhost:8084/swagger-ui.html |
 | H2 Console (Auth) | http://localhost:8081/h2-console |
 | H2 Console (Concert) | http://localhost:8082/h2-console |
 | H2 Console (Reservation) | http://localhost:8083/h2-console |
+| H2 Console (Payment) | http://localhost:8084/h2-console |
 
 ---
 
@@ -516,8 +535,8 @@ VITE_API_BASE_URL=http://localhost:8080
 - [x] 서비스 간 통신 (Feign Client)
 - [x] 프론트엔드-백엔드 API 연동
 
-### Phase 3 (예정)
-- [ ] Payment Service (Saga 패턴)
+### Phase 3 (진행 중)
+- [x] Payment Service 구현 ✅
 - [ ] Kafka 이벤트 처리
 - [ ] Redis 캐싱
 - [ ] Docker Compose 배포
