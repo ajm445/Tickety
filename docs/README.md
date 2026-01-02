@@ -512,9 +512,9 @@ VITE_API_BASE_URL=http://localhost:8080
 - [x] Auth Service (JWT 발급)
 - [x] Concert Service (공연 관리)
 
-### Phase 2 (진행 중)
-- [x] 서비스 간 통신 (Feign Client) ✅
-- [ ] 프론트엔드-백엔드 실제 연동 테스트
+### Phase 2 (완료) ✅
+- [x] 서비스 간 통신 (Feign Client)
+- [x] 프론트엔드-백엔드 API 연동
 
 ### Phase 3 (예정)
 - [ ] Payment Service (Saga 패턴)
