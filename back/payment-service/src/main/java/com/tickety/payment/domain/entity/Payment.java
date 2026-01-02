@@ -117,7 +117,7 @@ public class Payment {
         this.refundReason = reason;
         this.refundedAt = OffsetDateTime.now();
 
-        if (totalRefunded.equals(this.amount)) {
+        if (totalRefunded == this.amount) {
             this.status = PaymentStatus.REFUNDED;
         } else {
             this.status = PaymentStatus.PARTIAL_REFUNDED;
