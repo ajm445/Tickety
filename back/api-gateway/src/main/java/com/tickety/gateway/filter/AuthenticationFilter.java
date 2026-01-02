@@ -32,7 +32,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     // Endpoints with read-only access (GET only)
     private static final List<String> PUBLIC_READ_ENDPOINTS = List.of(
-            "/api/concerts"
+            "/api/concerts",
+            "/api/venues"
     );
 
     private final JwtUtil jwtUtil;

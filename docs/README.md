@@ -33,7 +33,7 @@ Tickety/
     ├── eureka-server/              # 서비스 디스커버리
     ├── api-gateway/                # API 게이트웨이
     ├── auth-service/               # 인증 서비스 ✅
-    ├── concert-service/            # 공연 서비스 (예정)
+    ├── concert-service/            # 공연 서비스 ✅
     ├── reservation-service/        # 예약 서비스 ✅
     └── payment-service/            # 결제 서비스 (예정)
 ```
@@ -76,7 +76,7 @@ Tickety/
 | Eureka Server | 8761 | 서비스 디스커버리 | ✅ 완료 |
 | API Gateway | 8080 | 라우팅, CORS, JWT 인증 필터 | ✅ 완료 |
 | Auth Service | 8081 | JWT 발급/인가 | ✅ 완료 |
-| Concert Service | 8082 | 공연/공연장 관리 | 📋 예정 |
+| Concert Service | 8082 | 공연/공연장 관리 | ✅ 완료 |
 | Reservation Service | 8083 | 좌석 예약 (비관적 락) | ✅ 완료 |
 | Payment Service | 8084 | 결제 처리 (Saga) | 📋 예정 |
 | Frontend | 5173 | React 웹 애플리케이션 | ✅ 완료 |
@@ -243,13 +243,28 @@ front/tickety-web/src/
 | POST | `/api/auth/logout` | 로그아웃 | ✅ |
 | GET | `/api/auth/me` | 현재 사용자 정보 | ✅ |
 
-### Concert Service API (예정)
+### Concert Service API
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
 | GET | `/api/concerts` | 공연 목록 조회 | ❌ |
 | GET | `/api/concerts/{id}` | 공연 상세 조회 | ❌ |
+| GET | `/api/concerts/upcoming` | 다가오는 공연 조회 | ❌ |
+| GET | `/api/concerts/all` | 전체 공연 목록 (관리자) | ✅ |
 | POST | `/api/concerts` | 공연 등록 | ✅ (관리자) |
+| PATCH | `/api/concerts/{id}/status` | 공연 상태 변경 | ✅ (관리자) |
+| DELETE | `/api/concerts/{id}` | 공연 삭제 | ✅ (관리자) |
+
+### Venue API
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| GET | `/api/venues` | 공연장 목록 조회 | ❌ |
+| GET | `/api/venues/{id}` | 공연장 상세 조회 | ❌ |
+| GET | `/api/venues/city/{city}` | 도시별 공연장 조회 | ❌ |
+| POST | `/api/venues` | 공연장 등록 | ✅ (관리자) |
+| PUT | `/api/venues/{id}` | 공연장 수정 | ✅ (관리자) |
+| DELETE | `/api/venues/{id}` | 공연장 삭제 | ✅ (관리자) |
 
 ### 응답 형식
 ```json
@@ -292,7 +307,11 @@ cd back/api-gateway
 cd back/auth-service
 ./gradlew bootRun
 
-# 4. Reservation Service 실행
+# 4. Concert Service 실행
+cd back/concert-service
+./gradlew bootRun
+
+# 5. Reservation Service 실행
 cd back/reservation-service
 ./gradlew bootRun
 ```
@@ -313,8 +332,10 @@ npm run dev
 | API Gateway | http://localhost:8080 |
 | Eureka Dashboard | http://localhost:8761 |
 | Swagger UI (Auth) | http://localhost:8081/swagger-ui.html |
+| Swagger UI (Concert) | http://localhost:8082/swagger-ui.html |
 | Swagger UI (Reservation) | http://localhost:8083/swagger-ui.html |
 | H2 Console (Auth) | http://localhost:8081/h2-console |
+| H2 Console (Concert) | http://localhost:8082/h2-console |
 | H2 Console (Reservation) | http://localhost:8083/h2-console |
 
 ---
@@ -441,10 +462,11 @@ VITE_API_BASE_URL=http://localhost:8080
 - [x] 인증 보호 라우트 (ProtectedRoute)
 - [x] Supabase PostgreSQL 연동
 - [x] Auth Service (JWT 발급)
+- [x] Concert Service (공연 관리)
 
 ### Phase 2 (진행 예정)
-- [ ] Concert Service (공연 관리)
 - [ ] 서비스 간 통신 (Feign Client)
+- [ ] 프론트엔드-백엔드 실제 연동 테스트
 
 ### Phase 3 (예정)
 - [ ] Payment Service (Saga 패턴)
