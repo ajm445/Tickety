@@ -1,5 +1,8 @@
 package com.tickety.reservation.service.impl;
 
+import com.tickety.reservation.client.ConcertClient;
+import com.tickety.reservation.client.dto.ApiResponseWrapper;
+import com.tickety.reservation.client.dto.ConcertDto;
 import com.tickety.reservation.domain.entity.Concert;
 import com.tickety.reservation.domain.entity.Reservation;
 import com.tickety.reservation.domain.entity.ReservationSeat;
@@ -42,12 +45,16 @@ public class ReservationServiceImpl implements ReservationService {
     private final SeatRepository seatRepository;
     private final ConcertRepository concertRepository;
     private final ReservationSeatRepository reservationSeatRepository;
+    private final ConcertClient concertClient;
 
     @Override
     @Transactional
     public ReservationResponse createReservation(ReservationRequest request, UUID userId) {
         Concert concert = concertRepository.findById(request.getConcertId())
                 .orElseThrow(() -> new ConcertNotFoundException(request.getConcertId()));
+
+        // Validate concert is open for booking via Concert Service
+        validateConcertBookingAvailability(request.getConcertId());
 
         List<Seat> seats = seatRepository.findAllByIdWithPessimisticLock(request.getSeatIds());
 
@@ -201,5 +208,29 @@ public class ReservationServiceImpl implements ReservationService {
         String dateStr = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String randomStr = String.format("%06d", new Random().nextInt(1000000));
         return "TKT" + dateStr + "-" + randomStr;
+    }
+
+    private void validateConcertBookingAvailability(UUID concertId) {
+        ApiResponseWrapper<ConcertDto> response = concertClient.getConcertById(concertId);
+
+        if (!response.isSuccess() || response.getData() == null) {
+            log.warn("Failed to validate concert {} from concert-service: {}", concertId, response.getMessage());
+            // Continue with local validation only if concert-service is unavailable
+            return;
+        }
+
+        ConcertDto concertDto = response.getData();
+
+        // Check if booking is open
+        if (concertDto.getBookingOpen() != null && !concertDto.getBookingOpen()) {
+            throw new IllegalStateException("Booking is not open for this concert.");
+        }
+
+        // Check if concert date has passed
+        if (concertDto.getConcertDate() != null && concertDto.getConcertDate().isBefore(OffsetDateTime.now())) {
+            throw new IllegalStateException("Cannot book tickets for a past concert.");
+        }
+
+        log.debug("Concert {} validated successfully via concert-service", concertId);
     }
 }

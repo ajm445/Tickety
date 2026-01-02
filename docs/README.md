@@ -102,8 +102,52 @@ Tickety/
 - `/api/payments/**` - 모든 결제 API
 
 ### 서비스 간 통신
-- **동기 통신**: OpenFeign (서비스 간 직접 호출)
+- **동기 통신**: OpenFeign (서비스 간 직접 호출) ✅ 구현 완료
 - **비동기 통신**: Kafka (이벤트 기반 처리) - 예정
+
+#### OpenFeign 클라이언트 구조
+```
+reservation-service/
+├── client/
+│   ├── ConcertClient.java           # Feign 클라이언트 인터페이스
+│   ├── ConcertClientFallback.java   # Fallback 처리
+│   └── dto/
+│       ├── ConcertDto.java          # 공연 정보 DTO
+│       ├── VenueDto.java            # 공연장 정보 DTO
+│       └── ApiResponseWrapper.java  # 응답 래퍼
+```
+
+#### Feign Client 설정
+```yaml
+# application.yml
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 5000
+      concert-service:
+        connect-timeout: 3000
+        read-timeout: 3000
+```
+
+#### 예약 시 공연 검증 로직
+```java
+// ReservationServiceImpl.java
+private void validateConcertBookingAvailability(UUID concertId) {
+    ApiResponseWrapper<ConcertDto> response = concertClient.getConcertById(concertId);
+
+    if (!response.isSuccess()) {
+        log.warn("Failed to validate concert from concert-service");
+        return; // Fallback: 로컬 검증만 수행
+    }
+
+    ConcertDto concert = response.getData();
+    if (!concert.getBookingOpen()) {
+        throw new IllegalStateException("Booking is not open");
+    }
+}
+```
 
 ---
 
@@ -113,6 +157,10 @@ Tickety/
 ```
 back/reservation-service/
 ├── src/main/java/com/tickety/reservation/
+│   ├── client/                     # Feign 클라이언트 ✅
+│   │   ├── ConcertClient           # Concert Service 호출
+│   │   ├── ConcertClientFallback   # Fallback 처리
+│   │   └── dto/                    # 클라이언트 DTO
 │   ├── config/                     # 설정 (Swagger, JPA)
 │   ├── controller/                 # REST API 컨트롤러
 │   │   ├── ReservationController   # 예약 API
@@ -464,8 +512,8 @@ VITE_API_BASE_URL=http://localhost:8080
 - [x] Auth Service (JWT 발급)
 - [x] Concert Service (공연 관리)
 
-### Phase 2 (진행 예정)
-- [ ] 서비스 간 통신 (Feign Client)
+### Phase 2 (진행 중)
+- [x] 서비스 간 통신 (Feign Client) ✅
 - [ ] 프론트엔드-백엔드 실제 연동 테스트
 
 ### Phase 3 (예정)

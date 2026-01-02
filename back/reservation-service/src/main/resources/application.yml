@@ -46,6 +46,17 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
 
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 5000
+        logger-level: basic
+      concert-service:
+        connect-timeout: 3000
+        read-timeout: 3000
+
 logging:
   level:
     com.tickety.reservation: DEBUG
