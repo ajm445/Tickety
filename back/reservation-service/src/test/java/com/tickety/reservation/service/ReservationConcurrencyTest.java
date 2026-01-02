@@ -1,11 +1,16 @@
 package com.tickety.reservation.service;
 
+import com.tickety.reservation.domain.entity.Concert;
 import com.tickety.reservation.domain.entity.Seat;
+import com.tickety.reservation.domain.entity.Venue;
+import com.tickety.reservation.domain.enums.ConcertStatus;
 import com.tickety.reservation.domain.enums.SeatGrade;
 import com.tickety.reservation.domain.enums.SeatStatus;
 import com.tickety.reservation.dto.request.ReservationRequest;
+import com.tickety.reservation.repository.ConcertRepository;
 import com.tickety.reservation.repository.ReservationRepository;
 import com.tickety.reservation.repository.SeatRepository;
+import com.tickety.reservation.repository.VenueRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,8 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,20 +41,53 @@ class ReservationConcurrencyTest {
     @Autowired
     private ReservationRepository reservationRepository;
 
+    @Autowired
+    private ConcertRepository concertRepository;
+
+    @Autowired
+    private VenueRepository venueRepository;
+
     private Seat testSeat;
+    private Concert testConcert;
 
     @BeforeEach
     void setUp() {
         reservationRepository.deleteAll();
         seatRepository.deleteAll();
+        concertRepository.deleteAll();
+        venueRepository.deleteAll();
 
+        // Create test venue
+        Venue venue = venueRepository.save(Venue.builder()
+                .name("테스트 공연장")
+                .address("서울시 강남구")
+                .city("서울")
+                .totalSeats(1000)
+                .build());
+
+        // Create test concert
+        testConcert = concertRepository.save(Concert.builder()
+                .venue(venue)
+                .title("테스트 콘서트")
+                .artist("테스트 아티스트")
+                .description("동시성 테스트용 공연")
+                .concertDate(OffsetDateTime.now().plusDays(30))
+                .bookingStartAt(OffsetDateTime.now().minusDays(1))
+                .bookingEndAt(OffsetDateTime.now().plusDays(29))
+                .status(ConcertStatus.OPEN)
+                .priceMin(50000)
+                .priceMax(150000)
+                .build());
+
+        // Create test seat
         testSeat = seatRepository.save(Seat.builder()
-                .concertId(1L)
-                .seatNumber("A-1")
-                .seatGrade(SeatGrade.VIP)
-                .price(BigDecimal.valueOf(150000))
+                .concert(testConcert)
+                .section("VIP")
+                .rowNumber("A")
+                .seatNumber(1)
+                .grade(SeatGrade.VIP)
+                .price(150000)
                 .status(SeatStatus.AVAILABLE)
-                .version(0L)
                 .build());
     }
 
@@ -63,13 +102,13 @@ class ReservationConcurrencyTest {
         AtomicInteger failCount = new AtomicInteger(0);
 
         ReservationRequest request = ReservationRequest.builder()
-                .concertId(1L)
+                .concertId(testConcert.getId())
                 .seatIds(List.of(testSeat.getId()))
                 .build();
 
         // when
         for (int i = 0; i < numberOfThreads; i++) {
-            final long userId = i + 1;
+            final UUID userId = UUID.randomUUID();
             executorService.submit(() -> {
                 try {
                     reservationService.createReservation(request, userId);
@@ -103,12 +142,13 @@ class ReservationConcurrencyTest {
     void concurrentReservation_MultipleSeats_DataIntegrity() throws InterruptedException {
         // given
         Seat seat2 = seatRepository.save(Seat.builder()
-                .concertId(1L)
-                .seatNumber("A-2")
-                .seatGrade(SeatGrade.VIP)
-                .price(BigDecimal.valueOf(150000))
+                .concert(testConcert)
+                .section("VIP")
+                .rowNumber("A")
+                .seatNumber(2)
+                .grade(SeatGrade.VIP)
+                .price(150000)
                 .status(SeatStatus.AVAILABLE)
-                .version(0L)
                 .build());
 
         int numberOfThreads = 50;
@@ -118,13 +158,13 @@ class ReservationConcurrencyTest {
 
         // Half try to reserve seat1, half try to reserve seat2
         for (int i = 0; i < numberOfThreads; i++) {
-            final long userId = i + 1;
-            final Long seatId = (i % 2 == 0) ? testSeat.getId() : seat2.getId();
+            final UUID userId = UUID.randomUUID();
+            final UUID seatId = (i % 2 == 0) ? testSeat.getId() : seat2.getId();
 
             executorService.submit(() -> {
                 try {
                     ReservationRequest request = ReservationRequest.builder()
-                            .concertId(1L)
+                            .concertId(testConcert.getId())
                             .seatIds(List.of(seatId))
                             .build();
                     reservationService.createReservation(request, userId);

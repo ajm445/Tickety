@@ -1,0 +1,41 @@
+# Supabase PostgreSQL Configuration (using Supavisor Session Mode for IPv4)
+spring:
+  datasource:
+    url: jdbc:postgresql://${SUPABASE_POOLER_HOST:aws-1-ap-northeast-2.pooler.supabase.com}:${SUPABASE_POOLER_PORT:5432}/${SUPABASE_DB:postgres}?sslmode=require
+    driver-class-name: org.postgresql.Driver
+    username: ${SUPABASE_USER:postgres.ecqhmkeuuxpenfdfuszq}
+    password: ${SUPABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        default_schema: public
+
+  h2:
+    console:
+      enabled: false
+
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    com.tickety.auth: INFO
+    org.hibernate.SQL: WARN
+    com.zaxxer.hikari: INFO
