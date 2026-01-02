@@ -21,6 +21,7 @@ Tickety는 대규모 트래픽 환경에서 데이터 정합성을 보장하는 
 Tickety/
 ├── docs/                           # 프로젝트 문서
 │   ├── README.md                   # 전체 프로젝트 가이드 (현재 파일)
+│   ├── TEST_REPORT.md              # 통합 테스트 보고서
 │   ├── DOCS_REQUIREMENTS.md        # 요구사항 정의서
 │   ├── DOCS_ARCHITECTURE.md        # 아키텍처 명세서
 │   ├── DOCS_DB_DESIGN.md           # DB 설계 문서
