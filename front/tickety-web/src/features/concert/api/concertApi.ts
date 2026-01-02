@@ -2,15 +2,21 @@ import apiClient from '../../../services/apiClient';
 import type { ApiResponse, Concert } from '../../../types';
 
 export const concertApi = {
-  // Get all concerts
+  // Get open concerts (default - for booking)
   getConcerts: async (): Promise<ApiResponse<Concert[]>> => {
     const response = await apiClient.get('/api/concerts');
     return response.data;
   },
 
-  // Get concerts with status OPEN
-  getOpenConcerts: async (): Promise<ApiResponse<Concert[]>> => {
-    const response = await apiClient.get('/api/concerts/open');
+  // Get all concerts (admin)
+  getAllConcerts: async (): Promise<ApiResponse<Concert[]>> => {
+    const response = await apiClient.get('/api/concerts/all');
+    return response.data;
+  },
+
+  // Get upcoming concerts
+  getUpcomingConcerts: async (): Promise<ApiResponse<Concert[]>> => {
+    const response = await apiClient.get('/api/concerts/upcoming');
     return response.data;
   },
 
@@ -22,7 +28,7 @@ export const concertApi = {
 
   // Search concerts by keyword
   searchConcerts: async (keyword: string): Promise<ApiResponse<Concert[]>> => {
-    const response = await apiClient.get(`/api/concerts/search?keyword=${encodeURIComponent(keyword)}`);
+    const response = await apiClient.get(`/api/concerts?keyword=${encodeURIComponent(keyword)}`);
     return response.data;
   },
 };

@@ -27,6 +27,8 @@ export interface SignupRequest {
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
+  tokenType?: string;
+  expiresIn?: number;
 }
 
 // Venue Types
@@ -57,6 +59,7 @@ export interface Concert {
   posterUrl?: string;
   priceMin: number;
   priceMax: number;
+  bookingOpen?: boolean;
 }
 
 // Seat Types
